@@ -1,0 +1,9 @@
+# 排除大型实验消融中间结果与点云图像数据集
+ablation_results/
+ablation_results_sample_*/
+cgn_input_data/
+checkpoints/
+tfb_extracted_data/
+log/
+scratch/
+*.log
