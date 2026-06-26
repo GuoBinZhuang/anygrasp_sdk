@@ -108,7 +108,7 @@ def main():
     # 候选数量对比
     # AnyGrasp (B): 50.0, AnyGrasp (D): 48.71
     # CGN-Native: 50.0, CGN-Mask: 15.52
-    c_means = [50.0, 48.71, 50.0, 15.52]
+    c_means = [50.0, 48.71, np.mean(cgn_nat_grasps), np.mean(cgn_msk_grasps)]
     c_labels = [
         "AnyGrasp\n(Orig. Depth)", "AnyGrasp\n+Qd+SAM2",
         "CGN Native\n(Full Scene)", "CGN Mask\n(Local Region)"

@@ -6,3 +6,10 @@
 .DS_Store
 .TimeRecord
 license
+grasp_detection/transcg_dataset/
+grasp_detection/inspect_*.png
+grasp_detection/test_*.png
+grasp_detection/transcg_vis_*.png
+scratch/
+pointnet2/build/
+grasp_tracking/log/

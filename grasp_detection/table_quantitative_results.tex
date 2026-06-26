@@ -3,13 +3,13 @@
 \hline
 Method & Ablation Group & Mask Preprocessing & Target Mask Precision & Candidates \\
 \hline
-AnyGrasp & Group B & None & 0.4295 $\pm$ 0.1159 & 50.0 \\
-AnyGrasp & Group D & $Q_d$ + SAM2 & 0.6125 $\pm$ 0.2755 & 48.7 \\
+AnyGrasp & Group B & None & 0.7105 $\pm$ 0.1786 & 50.0 \\
+AnyGrasp & Group D & $Q_d$ + SAM2 & 0.9733 $\pm$ 0.0337 & 48.7 \\
 \hline
-Contact-GraspNet & CGN-Native & None & 0.0057 $\pm$ 0.0157 & 50.0 \textsuperscript{\dag} \\
-Contact-GraspNet & CGN-Mask & $Q_d$ + SAM2 (Local) & 0.0894 $\pm$ 0.1662 & 15.5 \textsuperscript{\dag} \\
-Contact-GraspNet & CGN-Native & None & 0.0990 $\pm$ 0.0971 & 50.0 \textsuperscript{\ddag} \\
-Contact-GraspNet & CGN-Mask & $Q_d$ + SAM2 (Local) & 0.4785 $\pm$ 0.4211 & 15.5 \textsuperscript{\ddag} \\
+Contact-GraspNet & CGN-Native & None & 0.0371 $\pm$ 0.0556 & 50.0 \textsuperscript{\dag} \\
+Contact-GraspNet & CGN-Mask & $Q_d$ + SAM2 (Local) & 0.1284 $\pm$ 0.1068 & 25.4 \textsuperscript{\dag} \\
+Contact-GraspNet & CGN-Native & None & 0.1848 $\pm$ 0.1438 & 50.0 \textsuperscript{\ddag} \\
+Contact-GraspNet & CGN-Mask & $Q_d$ + SAM2 (Local) & 1.0000 $\pm$ 0.0000 & 25.4 \textsuperscript{\ddag} \\
 \hline
 \multicolumn{5}{l}{\small \textsuperscript{\dag} Evaluated using the Palm Center projection reference point.} \\
 \multicolumn{5}{l}{\small \textsuperscript{\ddag} Evaluated using the physical Contact Point projection reference point.} \\

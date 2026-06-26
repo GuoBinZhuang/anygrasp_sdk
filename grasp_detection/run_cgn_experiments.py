@@ -47,6 +47,40 @@ def cgn_grasp_nms(grasps, scores, contact_pts, translation_threshold=0.03, rotat
         
     return grasps[keep], scores[keep], contact_pts[keep]
 
+def patch_grasp_estimator(grasp_estimator, padding=0.04):
+    from contact_graspnet_pytorch.data import reject_median_outliers, regularize_pc_point_count
+    import types
+    
+    def custom_extract_3d_cam_boxes(self, full_pc, pc_segments, min_size=0.3, max_size=0.6):
+        pc_regions = {}
+        obj_centers = {}
+        for i in pc_segments:
+            pts = reject_median_outliers(pc_segments[i], m=0.4, z_only=False)
+            if np.any(pts):
+                # 3D Padding: 外拓边界
+                max_bounds = np.max(pts[:, :3], axis=0) + padding
+                min_bounds = np.min(pts[:, :3], axis=0) - padding
+                
+                obj_extent = max_bounds - min_bounds
+                obj_center = min_bounds + obj_extent / 2.0
+                
+                size = np.minimum(np.maximum(np.max(obj_extent)*2, min_size), max_size)
+                print(f'   [3D Padding] {padding}m applied. Extracted Region Cube Size: {size:.4f}, Center: {obj_center}')
+                
+                partial_pc = full_pc[np.all(full_pc > (obj_center - size/2), axis=1) & np.all(full_pc < (obj_center + size/2), axis=1)]
+                if np.any(partial_pc):
+                    partial_pc = regularize_pc_point_count(
+                        partial_pc, 
+                        self._contact_grasp_cfg['DATA']['raw_num_points'], 
+                        use_farthest_point=self._contact_grasp_cfg['DATA']['use_farthest_point']
+                    )
+                    pc_regions[i] = partial_pc
+                    obj_centers[i] = obj_center
+        return pc_regions, obj_centers
+
+    grasp_estimator.extract_3d_cam_boxes = types.MethodType(custom_extract_3d_cam_boxes, grasp_estimator)
+    print(f"✓ CGN Monkey Patch (仅 3D Padding) 成功应用 (padding={padding}m)！")
+
 def main():
     print("=== 初始化 Contact-GraspNet 模型 ===")
     ckpt_dir = '/home/gb/My_respositories/contact_graspnet_pytorch/checkpoints/contact_graspnet'
@@ -57,6 +91,9 @@ def main():
     checkpoint_io = CheckpointIO(checkpoint_dir=model_checkpoint_dir, model=grasp_estimator.model)
     checkpoint_io.load('model.pt')
     print("✓ 模型和权重加载成功！")
+    
+    # 应用 CGN 物理外拓补丁 (3D Padding = 0.04m)
+    patch_grasp_estimator(grasp_estimator, padding=0.04)
 
     npz_dir = "/home/gb/My_respositories/anygrasp_sdk/grasp_detection/cgn_input_data"
     output_parent = "/home/gb/My_respositories/anygrasp_sdk/grasp_detection/tfb_extracted_data"

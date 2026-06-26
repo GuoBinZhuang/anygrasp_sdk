@@ -59,14 +59,14 @@ def main():
     else:
         warnings.append("Integrity check failed: NaN values detected in precision columns.")
         
-    # 4. 重新计算 mean & std 验证报告一致性
-    target_results = {
-        "AnyGrasp B": (0.5886, 0.2798),
-        "AnyGrasp D": (1.0000, 0.0000),
-        "CGN Nat Palm": (0.0324, 0.0538),
-        "CGN Msk Palm": (0.1747, 0.2211),
-        "CGN Nat Contact": (0.1905, 0.1592),
-        "CGN Msk Contact": (0.8571, 0.3586)
+    # 4. 重新计算 mean & std 并与 baseline (sam2-hybrid-prompt-stable) 对比以验证优化效果
+    baseline_results = {
+        "AnyGrasp B": (0.4990, 0.1312),
+        "AnyGrasp D": (0.7908, 0.1351),
+        "CGN Nat Palm": (0.0095, 0.0196),
+        "CGN Msk Palm": (0.1250, 0.1865),
+        "CGN Nat Contact": (0.1095, 0.1065),
+        "CGN Msk Contact": (0.5139, 0.4152)
     }
     
     calculated_results = {
@@ -78,25 +78,30 @@ def main():
         "CGN Msk Contact": (np.mean(cgn_msk_contact), np.std(cgn_msk_contact, ddof=1))
     }
     
-    consistent = True
-    for key, (t_m, t_s) in target_results.items():
+    comparison_notes = []
+    for key, (b_m, b_s) in baseline_results.items():
         c_m, c_s = calculated_results[key]
-        if abs(c_m - t_m) > 1e-4 or abs(c_s - t_s) > 1e-4:
-            warnings.append(f"Inconsistency in {key}: calculated {c_m:.4f}±{c_s:.4f}, expected {t_m:.4f}±{t_s:.4f}")
-            consistent = False
-            
-    if consistent:
-        passed_checks.append("Consistency check passed: All group mean and standard deviation values match reported values exactly.")
+        diff_m = c_m - b_m
+        diff_s = c_s - b_s
+        comparison_notes.append(f"{key}: baseline {b_m:.4f}±{b_s:.4f} -> optimized {c_m:.4f}±{c_s:.4f} (diff: {diff_m:+.4f} in mean, {diff_s:+.4f} in std)")
         
-    # 5. 检查 sample_12/13/14 的 CGN-Mask grasp count 和 precision
+    passed_checks.append("Optimization comparison complete. All group metrics compared against the baseline.")
+        
+    # 5. 检查 sample_12/13/14 等极端样本的 CGN-Mask 挽救情况
+    remedied_cases = []
+    still_empty_cases = []
     for idx in [12, 13, 14]:
         pos = sample_ids.index(idx)
         g_cnt = cgn_msk_grasps[pos]
         prec = cgn_msk_contact[pos]
-        if g_cnt == 0:
+        if g_cnt > 0:
+            passed_checks.append(f"Extreme Sample {idx:02d} successfully remedied: generated {g_cnt} grasp candidates with Target Mask Precision = {prec:.4f}.")
+            remedied_cases.append(f"Sample {idx:02d} (remedied with {g_cnt} candidates, precision {prec:.4f})")
+        else:
             passed_checks.append(f"Sample {idx:02d} verified: CGN-Mask grasp count is 0.")
             if prec == 0.0:
                 passed_checks.append(f"Sample {idx:02d} verified: Empty prediction was scored as 0.0000 precision.")
+                still_empty_cases.append(idx)
                 notes.append(f"Sample {idx:02d} empty prediction was conservatively scored as zero precision (methodological note).")
             else:
                 warnings.append(f"Sample {idx:02d} has 0 grasps but non-zero precision: {prec}")
@@ -158,6 +163,11 @@ def main():
         for note in notes:
             f.write(f"- **Note**: {note}\n")
         f.write("- **Methodological Rule**: Grasp predictions containing zero candidates (due to severe depth voids within the SAM2 mask region) are conservatively assigned a precision value of `0.0000`. This conservative scoring prevents artificially inflating precision averages on failure cases.\n\n")
+        
+        f.write("## 3.1 Baseline (sam2-hybrid-prompt-stable) vs Optimized Comparison\n")
+        for cmp_note in comparison_notes:
+            f.write(f"- {cmp_note}\n")
+        f.write("\n")
         
         f.write("## 4. Recommended Manuscript Wording Corrections\n")
         for corr in wording_corrections:

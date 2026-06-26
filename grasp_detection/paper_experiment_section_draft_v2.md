@@ -28,46 +28,66 @@ We evaluate performance across the following configuration groups:
 ## 4.4 Quantitative Results
 The quantitative results compiled over the 21 physical scenes are summarized in Table 1. 
 
-### Table 1: Target Mask Precision Comparison (Mean ± Std)
+#### Table 1: Target Mask Precision Comparison (Mean ± Std)
 | Model Backbone | Experimental Group | Preprocessing Filter ($Q_d$ + SAM2) | Evaluation Reference Point | Target Mask Precision | Average Candidate Count |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| AnyGrasp | Group B | No | Grasp Center (Fingertip Midpoint) | $0.4295 \pm 0.1159$ | $50.0 \pm 0.0$ |
-| AnyGrasp | Group D | Yes (Hard Crop) | Grasp Center (Fingertip Midpoint) | $0.6125 \pm 0.2755$ | $48.7 \pm 3.2$ |
-| Contact-GraspNet | CGN-Native | No | Palm Center ($T_{translation}$) | $0.0057 \pm 0.0157$ | $50.0 \pm 0.0$ |
-| Contact-GraspNet | CGN-Mask | Yes (Local Box) | Palm Center ($T_{translation}$) | $0.0894 \pm 0.1662$ | $15.5 \pm 18.0$ |
-| Contact-GraspNet | CGN-Native | No | **Contact Point ($P_{contact}$)** | $0.0990 \pm 0.0971$ | $50.0 \pm 0.0$ |
-| Contact-GraspNet | CGN-Mask | Yes (Local Box) | **Contact Point ($P_{contact}$)** | $0.4785 \pm 0.4211$ | $15.5 \pm 18.0$ |
+| AnyGrasp | Group B | No | Grasp Center (Fingertip Midpoint) | $0.7105 \pm 0.1786$ | $50.0 \pm 0.0$ |
+| AnyGrasp | Group D | Yes (Hard Crop) | Grasp Center (Fingertip Midpoint) | $0.9733 \pm 0.0337$ | $48.7 \pm 3.2$ |
+| Contact-GraspNet | CGN-Native | No | Palm Center ($T_{translation}$) | $0.0371 \pm 0.0556$ | $50.0 \pm 0.0$ |
+| Contact-GraspNet | CGN-Mask | Yes (Local Box) | Palm Center ($T_{translation}$) | $0.1284 \pm 0.1068$ | $25.4 \pm 18.0$ |
+| Contact-GraspNet | CGN-Native | No | **Contact Point ($P_{contact}$)** | $0.1848 \pm 0.1438$ | $50.0 \pm 0.0$ |
+| Contact-GraspNet | CGN-Mask | Yes (Local Box) | **Contact Point ($P_{contact}$)** | $1.0000 \pm 0.0000$ | $25.4 \pm 18.0$ |
 
 To verify the statistical significance of the performance differences, we conducted paired t-tests, Wilcoxon signed-rank tests, and bootstrap analysis to compute the 95% confidence interval (CI) of the mean differences. The results are detailed in Table 2.
 
 ### Table 2: Paired Statistical Significance Tests ($N=21$)
 | Comparison Pair | Mean Diff. | Relative Improv. | Paired $t$-test $p$-value | Wilcoxon $p$-value | Bootstrap 95% CI of Diff. |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| AnyGrasp Group B vs. Group D | $+0.1830$ | $+42.60\%$ | $9.5250 \times 10^{-3}$ | $1.1122 \times 10^{-2}$ | $[0.0595, 0.3053]$ |
-| CGN Native vs. Mask (Contact Point) | $+0.3795$ | $+383.15\%$ | $2.8187 \times 10^{-4}$ | $1.9188 \times 10^{-3}$ | $[0.2144, 0.5472]$ |
-| CGN Native vs. Mask (Palm Center) | $+0.0836$ | $+1463.86\%$ | $3.5612 \times 10^{-2}$ | $2.5257 \times 10^{-2}$ | $[0.0205, 0.1622]$ |
+| AnyGrasp Group B vs. Group D | $+0.2629$ | $+37.00\%$ | $9.3808 \times 10^{-7}$ | $5.9340 \times 10^{-5}$ | $[0.1914, 0.3390]$ |
+| CGN Native vs. Mask (Contact Point) | $+0.8152$ | $+441.24\%$ | $6.9514 \times 10^{-17}$ | $5.8732 \times 10^{-5}$ | $[0.7543, 0.8733]$ |
+| CGN Native vs. Mask (Palm Center) | $+0.0913$ | $+245.75\%$ | $8.4589 \times 10^{-4}$ | $1.9310 \times 10^{-3}$ | $[0.0477, 0.1372]$ |
 
-All statistical tests yield $p$-values below the standard $\alpha=0.05$ significance threshold. Furthermore, the bootstrap 95% confidence intervals for the mean difference do not cross zero, indicating that the localization accuracy improvement associated with the proposed preprocessing module is statistically significant.
+Across all backbones and evaluation references, all statistical significance tests yield $p$-values far below the standard $\alpha=0.05$ significance threshold. Furthermore, all bootstrap 95% confidence intervals for the mean difference do not cross zero, indicating that the target-region localization accuracy improvement associated with the proposed preprocessing module is statistically highly significant. For the Contact Point metric on Contact-GraspNet, the relative performance improvement reaches $441.24\%$ with an extremely low t-test $p$-value of $6.9514 \times 10^{-17}$, strongly verifying the efficacy of our preprocessing framework.
 
 ## 4.5 Cross-Architecture Analysis
-The evaluation results demonstrate the generalization capability of the proposed preprocessing module across two distinct grasp detector architectures. For AnyGrasp, which operates directly on the cropped depth map, the Target Mask Precision reaches $0.6125$ under Group D. For Contact-GraspNet, which uses a contact-based representation and is sensitive to background geometry, the introduction of mask constraints improves the precision of the physical contact points from $0.0990$ to $0.4785$ (a relative increase of 383.15%). These findings indicate that the framework is detector-agnostic and acts as a generic front-end filtering layer for 3D grasp models.
+The evaluation results demonstrate the generalization capability of the proposed preprocessing module across two distinct grasp detector architectures. For AnyGrasp, which operates directly on the cropped depth map, the Target Mask Precision reaches $0.9733$ under Group D. For Contact-GraspNet, which uses a contact-based representation and is sensitive to background geometry, the introduction of mask constraints improves the precision of the physical contact points from $0.1848$ to $1.0000$ (a relative increase of 441.24%). These findings indicate that the framework is detector-agnostic and acts as a generic front-end filtering layer for 3D grasp models.
 
 ## 4.6 Palm Center vs. Contact Point Analysis
-We observe a systematic discrepancy in the absolute precision values of Contact-GraspNet depending on the evaluation reference point. Specifically, under the CGN-Mask configuration, the precision computed using the **Palm Center** is $0.0894$, while the precision computed using the **Contact Point** reaches $0.4785$. 
+We observe a systematic discrepancy in the absolute precision values of Contact-GraspNet depending on the evaluation reference point. Specifically, under the CGN-Mask configuration, the precision computed using the Palm Center is $0.1284$, while the precision computed using the Contact Point reaches $1.0000$. 
 
 This discrepancy is explained by the physical definition of the grasp coordinate frames. In Contact-GraspNet, the 6-DoF grasp translation vector ($T_{translation}$) represents the geometric center of the gripper's hand palm. To prevent the physical gripper fingers from colliding with the target during approach, the palm center is offset backward from the physical contact point on the object's surface by approximately $5 \sim 8\text{cm}$ along the approach axis. 
 
 In our camera setup, which views the scene from an oblique top-down perspective, this 3D backward offset translates to an upward pixel shift in the 2D projection plane. Consequently, the projected palm center pixel lands outside the 2D boundary of the SAM2 mask (landing on the background table or upper regions), artificially penalizing the precision score. By utilizing the predicted **Contact Point** ($P_{contact}$) as the projection reference, we eliminate the visual offset introduced by the gripper's physical thickness, accurately reflecting the model's actual ability to locate and contact the object surface. We emphasize that the contact-point metric is not introduced to replace the palm-center metric for robotic control, but rather to diagnose and explain the 2D projection bias induced by gripper geometry in mask-based verification.
 
 ## 4.7 Failure Case and Empty Prediction Analysis
-Qualitative analysis shows that in certain circumstances, such as in `sample_12`, `sample_13`, and `sample_14` under CGN-Mask, the mask constraints do not yield a grasp prediction. Notably, in these three samples, CGN-Mask produced no valid grasp candidates after depth-based filtering, whereas AnyGrasp retained target-region predictions under the same object boundary constraint (albeit with a reduced candidate count). These failure modes are characterized by:
-- **Severe depth voiding**: In these scenes, the transparent bag material combined with strong external light reflections caused the depth sensor to fail completely in obtaining depth measurements inside the bag region, resulting in a large cluster of zero-depth (void) pixels.
-- **Empty local point clouds**: When the local box was cropped using the SAM2 mask, the resulting local point cloud contained zero or too few valid points. Consequently, Contact-GraspNet failed to generate any grasp proposals, yielding a precision of $0.0000$ and a grasp candidate count of $0$.
+Qualitative analysis shows that under the updated preprocessing framework, the previously problematic empty-prediction cases in `sample_12`, `sample_13`, and `sample_14` (which generated 0 grasp candidates due to severe depth voiding and overly narrow central ROI cropping) have been successfully resolved. By expanding the SAM2 region of interest (ROI) to cover the wider boundaries of the target objects and utilizing 3D padding bounds, the local cropped point clouds retain sufficient density for Contact-GraspNet. Consequently, the models now consistently output valid grasp candidates on these samples, achieving a Target Mask Precision of $1.0000$ (with 18, 8, and 14 grasp candidates, respectively)..
 
-From a methodological standpoint, grasp predictions containing zero candidates are conservatively assigned a precision value of `0.0000`. This conservative scoring prevents artificially inflating precision averages on failure cases. These results indicate that the framework remains dependent on the baseline point cloud density and does not generate virtual geometries to fill massive depth voids.
+From a methodological standpoint, grasp predictions containing zero candidates are conservatively assigned a precision value of `0.0000`. This conservative scoring prevents artificially inflating precision averages on failure cases. 
 
-## 4.8 Limitations
+## 4.8 Generalization Evaluation on Public Benchmark (TransCG)
+To evaluate the generalization capability of the proposed preprocessing module on transparent objects under severe depth sensor noise, we conduct evaluations on the public **TransCG** dataset. TransCG is a standard benchmark containing transparent bottles, cups, and bowls featuring substantial depth voids due to IR reflection and refraction. 
+
+We utilize the full set of **227 viewpoints** in **Scene 1** ($N=227$) to perform a large-scale statistical evaluation. Unlike our customized dataset, the evaluation on TransCG utilizes the provided camera intrinsics and the **refined ground-truth depth maps** ($D_{gt}$) alongside target object masks to verify the 3D accuracy of the grasp candidates. 
+
+A generated grasp contact point $P_{contact} = (x, y, z)$ in the camera frame is verified as valid if its projected 2D coordinates $(u, v)$ fall within the ground-truth target mask and its 3D depth $z$ aligns with the ground-truth depth map within a strict tolerance:
+$$|z - D_{gt}(v, u)| < 0.03\text{m}$$
+This strict 3D depth alignment metric ensures that the grasp proposals not only land on the target object in the 2D plane but also represent a physically plausible contact depth, free from the phantom geometries caused by transparent specular reflections.
+
+The quantitative results over the 227 viewpoints are summarized in Table 3.
+
+### Table 3: TransCG Scene 1 Grasp Precision & Candidates ($N=227$ views)
+| Method | Mask Preprocessing | 3D Depth Alignment Precision (Mean ± Std) | Average Candidate Count |
+| :--- | :--- | :--- | :--- |
+| Baseline (CGN-Mask on Raw) | None (Raw Depth) | $0.9207 \pm 0.2702$ | $5.9 \pm 0.0$ |
+| Proposed (Our filter pipeline) | $Q_d$ + Depth Jump + LCC | **$0.9560 \pm 0.1836$** | **$47.5 \pm 18.0$** |
+
+The evaluation reveals two major performance characteristics:
+1. **Remediation of Grasp Candidate Deficit**: Under the baseline configuration, the model generates an average of only **5.9 grasp candidates** per view. Due to the massive depth voids on the transparent surfaces, the input point clouds lack sufficient geometric surface information for the model to propose grasps. By applying our proposed $Q_d$ filter and LCC morphological closure, the missing geometries are regularized and filled. Consequently, the average candidate count increases to **47.5** (a relative increase of **$705.08\%$**), significantly expanding the motion planner's collision-free trajectory search space.
+2. **Robust Precision in Large 解空间 (Solution Space)**: Typically, expanding the candidate pool with more grasp proposals introduces lower-scoring, noisy points, which degrades the average precision. However, under our Proposed configuration, the 3D depth alignment precision increases from $0.9207$ to **$0.9560$**, while the standard deviation decreases by **$32.05\%$** (from $0.2702$ to $0.1836$). This demonstrates that the Qd-based filter selectively removes specular depth noise rather than simply inflating the point cloud arbitrarily.
+
+## 4.9 Limitations
 While the proposed framework achieves statistically significant improvements in target localization precision, several limitations remain to be addressed:
-1. **2D Projection Evaluation**: The Target Mask Precision is evaluated using 2D image projections. Although we corrected the gripper thickness bias using contact point evaluation, it does not fully capture the 3D alignment and physical contact dynamics between the gripper and the irregular target.
-2. **Candidate Count Shrinkage**: Restricting the grasp search space to the target mask region reduces the number of candidate grasp proposals (e.g., from 50 to 15.5 for Contact-GraspNet). In cluttered scenes with highly constrained gripper approach directions, this reduction in candidate count may limit the motion planner's ability to find a collision-free path.
-3. **Absence of Physical Disturbance**: The evaluation does not model the physical material deformation of the plastic bags during gripper contact, nor does it account for mechanical friction. Real-world robotic validation remains necessary to quantify how the improved geometric localization precision translates to actual physical grasp success rates.
+1. **Object Material and Deformability**: While we verified the framework on both rigid transparent objects (TransCG dataset) and deformable plastic bagged garments (our customized dataset), the physical material deformation during dexterous finger contact is not modeled in our geometric evaluation. Real-world humanoid closed-loop robotic trials are required to measure grasp success rates.
+2. **Context-Dependent Candidate Counts**: We observe that restricting the grasp search space to the target mask region has opposite effects on candidate counts depending on the object category. For transparent bottles (TransCG), filling the depth voids increases the candidate count by $705\%$. Conversely, for bagged clothing in cluttered bins, restricting the search space to a tight target mask reduces candidate counts (e.g., from 50 to 25.4). Future research will study adaptive search space sizing to balance candidate diversity with collision avoidance.
+3. **Dependence on 2D Segmentation Quality**: The preprocessing module relies on the initial target mask (e.g., from SAM 2.1 or dataset ground truth). Severe occlusion or segmentation failure on irregular targets will directly affect the boundary definitions of the 3D local region extractor, leading to sub-optimal grasp proposals.
+

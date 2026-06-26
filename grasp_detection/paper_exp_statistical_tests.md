@@ -5,6 +5,6 @@
 
 | Test Pair | Mean (Before) | Mean (After) | Abs Gain | Rel Gain | Std (Before) | Std (After) | Paired T-Test p-value | Wilcoxon p-value | Bootstrap 95% CI (Mean Diff) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| AnyGrasp Group B vs AnyGrasp Group D | 0.4295 | 0.6125 | 0.1830 | 0.4260 | 0.1159 | 0.2755 | 9.5250e-03 | 1.1122e-02 | [0.0595, 0.3053] |
-| CGN Native Contact Point vs CGN Mask Contact Point | 0.0990 | 0.4785 | 0.3795 | 3.8315 | 0.0971 | 0.4211 | 2.8187e-04 | 1.9188e-03 | [0.2144, 0.5472] |
-| CGN Native Palm Center vs CGN Mask Palm Center | 0.0057 | 0.0894 | 0.0836 | 14.6386 | 0.0157 | 0.1662 | 3.5612e-02 | 2.5257e-02 | [0.0205, 0.1622] |
+| AnyGrasp Group B vs AnyGrasp Group D | 0.7105 | 0.9733 | 0.2629 | 0.3700 | 0.1786 | 0.0337 | 9.3808e-07 | 5.9340e-05 | [0.1914, 0.3390] |
+| CGN Native Contact Point vs CGN Mask Contact Point | 0.1848 | 1.0000 | 0.8152 | 4.4124 | 0.1438 | 0.0000 | 6.9514e-17 | 5.8732e-05 | [0.7543, 0.8733] |
+| CGN Native Palm Center vs CGN Mask Palm Center | 0.0371 | 0.1284 | 0.0913 | 2.4575 | 0.0556 | 0.1068 | 8.4589e-04 | 1.9310e-03 | [0.0477, 0.1372] |

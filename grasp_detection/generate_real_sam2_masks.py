@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import torch
 import time
+from scipy.ndimage import label, binary_dilation
 
 # 将 sam2 目录加入 path，必须用 insert(0, ...) 确保优先级最高
 sys.path.insert(0, "/home/gb/My_respositories/OAS_BagSeg/sam2")
@@ -83,14 +84,39 @@ def main():
         
         # 限制在中心区域 ROI 寻找最可靠点 (x: [W/4, 3W/4], y: [H/4, 3H/4])
         roi_mask = np.zeros_like(qd, dtype=bool)
-        roi_mask[H//4 : 3*H//4, W//4 : 3*W//4] = True
+        roi_mask[H//12 : 11*H//12, W//12 : 11*W//12] = True
         
-        # 物理区间过滤：Z 限制在 [490mm, 760mm] 衣服实体区间
-        # 既排除近处机械爪 (Z<=480mm)，又排除桌面背景 (Z>=770mm)
-        physical_mask = (depth_np >= 490) & (depth_np <= 760)
+        # 物理区间过滤：Z 限制在 [470mm, 780mm] 衣服实体区间
+        # 既排除近处机械爪 (Z<=460mm)，又排除远处桌底背景
+        physical_mask = (depth_np >= 470) & (depth_np <= 780)
         
-        # 提取 top 10% 最高 Qd 置信度像素的加权质心，阻断极值噪声和几何拉拽伪影
-        valid_mask = roi_mask & physical_mask & (qd > 0.0)
+        # 1. 蓝色多模态提取 (B > R * 1.15) & (G > R * 1.05) & (B > 50)
+        R = color_np[:, :, 0].astype(np.float32)
+        G = color_np[:, :, 1].astype(np.float32)
+        B = color_np[:, :, 2].astype(np.float32)
+        blue_mask = (B > R * 1.15) & (G > R * 1.05) & (B > 50)
+        
+        # 2. 深度跳变
+        depth_mm = depth_np.astype(np.float32)
+        dy, dx = np.gradient(depth_mm)
+        grad_mag = np.sqrt(dx**2 + dy**2)
+        jump_mask = (grad_mag > 20.0) | (depth_np == 0)
+        jump_mask_expanded = binary_dilation(jump_mask, structure=np.ones((3, 3)))
+        
+        # 3. 计算 valid_mask_raw 并扣除蓝色箱体和跳变边缘
+        valid_mask_raw = roi_mask & physical_mask & (qd > 0.0)
+        valid_mask_isolated = valid_mask_raw & (~jump_mask_expanded) & (~blue_mask)
+        
+        # 4. 最大连通域提取
+        valid_mask = np.zeros_like(valid_mask_raw, dtype=bool)
+        if np.any(valid_mask_isolated):
+            labeled_mask, num_features = label(valid_mask_isolated)
+            if num_features > 0:
+                bincounts = np.bincount(labeled_mask.ravel())
+                largest_label = np.argmax(bincounts[1:]) + 1
+                largest_cc = (labeled_mask == largest_label)
+                valid_mask = binary_dilation(largest_cc, structure=np.ones((3, 3)))
+        
         input_box = None
         if np.any(valid_mask):
             ys, xs = np.where(valid_mask)
@@ -112,33 +138,39 @@ def main():
             u = int(xs[nearest_idx])
             v = int(ys[nearest_idx])
             
-            # 计算 Box 并进行安全外扩 (15像素)
-            x_min = max(0, int(xs.min()) - 15)
-            x_max = min(W - 1, int(xs.max()) + 15)
-            y_min = max(0, int(ys.min()) - 15)
-            y_max = min(H - 1, int(ys.max()) + 15)
+            # 计算 Box 并进行安全外扩 (35像素)
+            x_min_raw = int(xs.min())
+            x_max_raw = int(xs.max())
+            y_min_raw = int(ys.min())
+            y_max_raw = int(ys.max())
+            
+            x_min = 0 if x_min_raw < 30 else max(0, x_min_raw - 35)
+            x_max = W - 1 if x_max_raw > W - 30 else min(W - 1, x_max_raw + 35)
+            y_min = 0 if y_min_raw < 30 else max(0, y_min_raw - 35)
+            y_max = H - 1 if y_max_raw > H - 30 else min(H - 1, y_max_raw + 35)
+            
             input_box = np.array([x_min, y_min, x_max, y_max])
         else:
             u, v = W // 2, H // 2
             # 回退 Box 为中心的大方框
             input_box = np.array([W//4, H//4, 3*W//4, 3*H//4])
             
-        # 生成负样本点提示，抑制溢出到背景桌面 (Z >= 780mm)
-        bg_mask = (depth_np >= 780)
+        # 生成负样本点提示，背景包含：深度背景 (>= 790mm) 以及 蓝色箱体 (blue_mask)
+        bg_mask = (depth_np >= 790) | blue_mask
         pts_list = [[u, v]]
         labels_list = [1] # 1 = 前景
         
-        # 自适应候选背景点 (上下左右距离物体 45 像素的区域)
+        # 自适应候选背景点 (上下左右距离物体 55 像素的区域，防止干涉外拓后的 Box)
         if input_box is not None:
             bx_min, by_min, bx_max, by_max = input_box
             candidates_bg = [
-                (max(0, bx_min - 45), (by_min + by_max)//2),
-                (min(W - 1, bx_max + 45), (by_min + by_max)//2),
-                ((bx_min + bx_max)//2, max(0, by_min - 45)),
-                ((bx_min + bx_max)//2, min(H - 1, by_max + 45))
+                (max(0, bx_min - 55), (by_min + by_max)//2),
+                (min(W - 1, bx_max + 55), (by_min + by_max)//2),
+                ((bx_min + bx_max)//2, max(0, by_min - 55)),
+                ((bx_min + bx_max)//2, min(H - 1, by_max + 55))
             ]
             for cx, cy in candidates_bg:
-                # 只有当该点确属背景（Z >= 780）或深度无效区时才作为背景负点
+                # 只有当该点确属背景或深度无效区时才作为背景负点
                 if bg_mask[cy, cx] or depth_np[cy, cx] == 0:
                     pts_list.append([cx, cy])
                     labels_list.append(0) # 0 = 背景
@@ -146,7 +178,7 @@ def main():
         input_points = np.array(pts_list)
         input_labels = np.array(labels_list)
         
-        # 进行 SAM2 分割推理
+        # 进行第一阶段 SAM2 分割推理
         predictor.set_image(color_np)
         
         t0 = time.time()
@@ -157,13 +189,75 @@ def main():
             box=input_box,
             multimask_output=True
         )
-        elapsed = time.time() - t0
         
         best_idx = np.argmax(scores)
-        best_mask = masks[best_idx]
-        if torch.is_tensor(best_mask):
-            best_mask = best_mask.cpu().numpy()
-        best_mask = best_mask.astype(bool) # HxW bool
+        mask_stage1 = masks[best_idx]
+        if torch.is_tensor(mask_stage1):
+            mask_stage1 = mask_stage1.cpu().numpy()
+        mask_stage1 = mask_stage1.astype(bool)
+        
+        # 二轮迭代自适应修正 (Two-stage Iterative Refinement)
+        refined_points = list(pts_list)
+        refined_labels = list(labels_list)
+        
+        # 1. 寻找漏分的前景区 (False Negatives): 属于 valid_mask (包含 LCC，不包含蓝色和跳变)
+        # 排除 blue_mask 确保漏分点绝对不会点在蓝色箱体上
+        fg_physical = roi_mask & physical_mask & (qd > 0.05) & (~blue_mask)
+        fn_mask = fg_physical & ~mask_stage1
+        
+        # 2. 寻找溢出的背景区 (False Positives): 属于 bg_mask 却在第一阶段被错误割入
+        fp_mask = bg_mask & mask_stage1
+        
+        updated_prompts = False
+        # 如果漏分像素过多（超过 150 像素），则提取其高 Qd 像素进行正点补加
+        if np.any(fn_mask) and np.sum(fn_mask) > 150:
+            ys_fn, xs_fn = np.where(fn_mask)
+            qd_fn = qd[ys_fn, xs_fn]
+            best_fn_idx = np.argmax(qd_fn)
+            fn_u, fn_v = int(xs_fn[best_fn_idx]), int(ys_fn[best_fn_idx])
+            refined_points.append([fn_u, fn_v])
+            refined_labels.append(1) # 1 = 正样本
+            updated_prompts = True
+            
+        # 如果背景溢出像素过多（超过 150 像素），则在误分处补加负点
+        if np.any(fp_mask) and np.sum(fp_mask) > 150:
+            ys_fp, xs_fp = np.where(fp_mask)
+            fp_u = int(np.round(np.mean(xs_fp)))
+            fp_v = int(np.round(np.mean(ys_fp)))
+            
+            dists = (xs_fp - fp_u)**2 + (ys_fp - fp_v)**2
+            nearest_fp = np.argmin(dists)
+            fp_u_real = int(xs_fp[nearest_fp])
+            fp_v_real = int(ys_fp[nearest_fp])
+            
+            refined_points.append([fp_u_real, fp_v_real])
+            refined_labels.append(0) # 0 = 背景
+            updated_prompts = True
+            
+        # 如果需要二轮修正，重新进行推理
+        if updated_prompts:
+            input_points_final = np.array(refined_points)
+            input_labels_final = np.array(refined_labels)
+            
+            masks_refined, scores_refined, _ = predictor.predict(
+                point_coords=input_points_final,
+                point_labels=input_labels_final,
+                box=input_box,
+                multimask_output=True
+            )
+            best_idx = np.argmax(scores_refined)
+            best_mask = masks_refined[best_idx]
+            if torch.is_tensor(best_mask):
+                best_mask = best_mask.cpu().numpy()
+            best_mask = best_mask.astype(bool)
+            final_score = scores_refined[best_idx]
+        else:
+            best_mask = mask_stage1
+            input_points_final = input_points
+            input_labels_final = input_labels
+            final_score = scores[best_idx]
+            
+        elapsed = time.time() - t0
         
         # 保存真正的 sam2_mask.npy
         mask_save_path = os.path.join(sample_path, "sam2_mask.npy")
@@ -177,15 +271,16 @@ def main():
         overlay_pil = Image.fromarray(overlay)
         draw = ImageDraw.Draw(overlay_pil)
         
-        # 1. 绘制前景点 (红十字)
+        # 1. 绘制初始前景点 (红十字)
         draw.line((u - 5, v, u + 5, v), fill="red", width=2)
         draw.line((u, v - 5, u, v + 5), fill="red", width=2)
         
-        # 2. 绘制自适应背景点 (蓝十字)
-        for pt, lbl in zip(input_points[1:], input_labels[1:]):
+        # 2. 绘制自适应背景负点和二次修正的红/蓝十字
+        for pt, lbl in zip(input_points_final[1:], input_labels_final[1:]):
             bx, by = pt
-            draw.line((bx - 4, by, bx + 4, by), fill="blue", width=2)
-            draw.line((bx, by - 4, bx, by + 4), fill="blue", width=2)
+            fill_color = "red" if lbl == 1 else "blue"
+            draw.line((bx - 4, by, bx + 4, by), fill=fill_color, width=2)
+            draw.line((bx, by - 4, bx, by + 4), fill=fill_color, width=2)
             
         # 3. 绘制 Bounding Box (红色线框)
         if input_box is not None:
@@ -195,7 +290,7 @@ def main():
         vis_save_path = os.path.join(sample_path, "sam2_mask_vis.png")
         overlay_pil.save(vis_save_path)
         
-        print(f"  ✓ 样本 {sample} 掩码已生成，耗时 {elapsed:.2f}s, 提示点数: {len(input_points)} (红正蓝负), score: {scores[best_idx]:.4f}")
+        print(f"  ✓ 样本 {sample} 掩码已生成，耗时 {elapsed:.2f}s, 提示点数: {len(input_points_final)} (红正蓝负, 修正: {updated_prompts}), score: {final_score:.4f}")
         
     print("\n🎉 全部样本的真实 SAM2.1 掩码处理完成！")
 

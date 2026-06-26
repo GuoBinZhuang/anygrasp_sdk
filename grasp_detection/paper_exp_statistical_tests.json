@@ -1,47 +1,47 @@
 [
   {
     "test_name": "AnyGrasp Group B vs AnyGrasp Group D",
-    "mean_before": 0.4295238095238096,
-    "mean_after": 0.6125100296528867,
-    "absolute_gain": 0.18298622012907712,
-    "relative_gain": 0.42602112341975423,
-    "std_before": 0.11586527480121862,
-    "std_after": 0.2754745951055097,
-    "paired_t_test_p_value": 0.009525012822598532,
-    "wilcoxon_signed_rank_p_value": 0.011121981675164004,
+    "mean_before": 0.7104761904761905,
+    "mean_after": 0.9733333333333333,
+    "absolute_gain": 0.2628571428571428,
+    "relative_gain": 0.369973185141128,
+    "std_before": 0.17861904127153383,
+    "std_after": 0.03366501646120692,
+    "paired_t_test_p_value": 9.380849714578797e-07,
+    "wilcoxon_signed_rank_p_value": 5.9340468658409374e-05,
     "bootstrap_95CI_for_mean_difference": [
-      0.05947322518751091,
-      0.30530612244897953
+      0.19142857142857145,
+      0.33904761904761904
     ]
   },
   {
     "test_name": "CGN Native Contact Point vs CGN Mask Contact Point",
-    "mean_before": 0.09904761904761905,
-    "mean_after": 0.4785498021060332,
-    "absolute_gain": 0.37950218305841416,
-    "relative_gain": 3.831512038273639,
-    "std_before": 0.09705177803135615,
-    "std_after": 0.42114917953989783,
-    "paired_t_test_p_value": 0.00028186849437791063,
-    "wilcoxon_signed_rank_p_value": 0.0019187660162923678,
+    "mean_before": 0.18476190476190477,
+    "mean_after": 1.0,
+    "absolute_gain": 0.8152380952380952,
+    "relative_gain": 4.412370895206729,
+    "std_before": 0.14379217807721836,
+    "std_after": 0.0,
+    "paired_t_test_p_value": 6.951402854940911e-17,
+    "wilcoxon_signed_rank_p_value": 5.873229978190779e-05,
     "bootstrap_95CI_for_mean_difference": [
-      0.21439909297052154,
-      0.547233560090703
+      0.7542857142857142,
+      0.8733333333333333
     ]
   },
   {
     "test_name": "CGN Native Palm Center vs CGN Mask Palm Center",
-    "mean_before": 0.005714285714285714,
-    "mean_after": 0.08936330021436405,
-    "absolute_gain": 0.08364901450007833,
-    "relative_gain": 14.638551920047849,
-    "std_before": 0.015675276256394515,
-    "std_after": 0.1661886870569713,
-    "paired_t_test_p_value": 0.035611608024200436,
-    "wilcoxon_signed_rank_p_value": 0.025257223520563477,
+    "mean_before": 0.03714285714285715,
+    "mean_after": 0.1284231830649439,
+    "absolute_gain": 0.09128032592208676,
+    "relative_gain": 2.457546574716719,
+    "std_before": 0.05560061664611798,
+    "std_after": 0.10682065230379852,
+    "paired_t_test_p_value": 0.0008458930218725122,
+    "wilcoxon_signed_rank_p_value": 0.0019309899357579097,
     "bootstrap_95CI_for_mean_difference": [
-      0.02048632218844985,
-      0.16224664224664226
+      0.04772235005317712,
+      0.13719208934256094
     ]
   }
 ]
