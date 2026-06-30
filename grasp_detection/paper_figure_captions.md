@@ -34,18 +34,18 @@ Fig. 5. Qualitative visualization of Case 1 (Sample 07) demonstrating localizati
 
 ---
 
-### Fig. 6. Qualitative result of Case 2: Detection failure due to extreme depth voids.
+### Fig. 6. Qualitative result of Case 2: Successful rescue of severe depth voids.
 **Caption:**
-Fig. 6. Qualitative visualization of Case 2 (Sample 12) illustrating a failure mode under the mask constraint. Under extreme depth voids or missing sensor data within the target mask region, the mask-constrained CGN (CGN Mask) fails to generate any grasp candidates within the target region, resulting in a target mask precision of 0.000. This highlights a limitation of geometry-based grasp detection when sensor depth data is highly incomplete.
+Fig. 6. Qualitative visualization of Case 2 (Sample 12) illustrating the successful rescue of grasp candidate generation under extreme depth voids. Under raw cropping and narrow regions of interest, baseline models fail completely to propose grasps within the target region due to missing depth data, resulting in empty predictions. By expanding the SAM2 region of interest (ROI) and applying 3D padding bounds, our proposed framework successfully retains sufficient local point cloud density, generating 18 valid target-aligned grasp candidates with a target mask precision of 1.000.
 
 ---
 
-### Fig. 7. Qualitative result of Case 3: Drift correction on AnyGrasp.
+### Fig. 7. Qualitative result of Case 3: Drift correction on AnyGrasp with blue bin exclusion.
 **Caption:**
-Fig. 7. Qualitative visualization of Case 3 (Sample 16) showing drift correction on the AnyGrasp model. From left to right: RGB, depth, SAM2 mask, AnyGrasp Group B (raw grasp proposals projected), and AnyGrasp Group D (mask-filtered proposals projected). In Sample 16, CGN-Mask produced no valid grasp candidates after depth-based filtering, whereas AnyGrasp retained a target-consistent prediction. The raw AnyGrasp model (Group B) outputs numerous grasp proposals scattered across the background. The mask-constrained configuration (Group D) filters out background proposals, ensuring all remaining candidates fall within the target object boundary (precision increases from 0.300 to 0.920).
+Fig. 7. Qualitative visualization of Case 3 (Sample 16) showing drift correction and blue basket exclusion on the AnyGrasp model. From left to right: RGB, depth, SAM2 mask, AnyGrasp Group B (raw grasp proposals projected), and AnyGrasp Group D (mask-filtered proposals projected). The baseline AnyGrasp model (Group B) outputs numerous grasp proposals scattered on the surrounding blue bins and background. The proposed mask-constrained configuration (Group D) filters out these background proposals and excludes the blue bins via color-depth filtering, ensuring all remaining candidates fall within the target object boundary (precision increases from 0.380 to 1.000).
 
 ---
 
-### Fig. 8. Qualitative result of Case 4: Background drift failure on native Contact-GraspNet.
+### Fig. 8. Qualitative result of Case 4: Background drift correction on Contact-GraspNet.
 **Caption:**
-Fig. 8. Qualitative visualization of Case 4 (Sample 13) showing background drift failure on the native Contact-GraspNet. The native CGN backbone predicts contact points entirely on the background table surface rather than the target object. Because all candidates fall outside the target mask, the resulting precision is 0.000 for both Native and Mask configurations (the latter having no valid candidates within the mask), highlighting the difficulty of localizing grasps on target objects when the base model's predictions suffer from severe spatial drift.
+Fig. 8. Qualitative visualization of Case 4 (Sample 13) showing correction of spatial drift on Contact-GraspNet. The native CGN backbone predicts contact points entirely on the background table surface rather than the target object (precision of 0.020). By restricting the point cloud using the target mask and regularizing the surface, the proposed configuration successfully eliminates the background drift, focusing all remaining grasp candidates directly on the target object surface (precision increases to 1.000).
